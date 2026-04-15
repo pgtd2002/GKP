@@ -90,3 +90,44 @@ def dual_lattice(M, ordering="qqpp"):
 
     return Om @ np.linalg.inv(A) @ M
 
+
+def symplectic_checker(S, ordering="qpqp", tol=1e-9):
+    """
+    Check if matrix S is symplectic.
+
+    ordering:
+        "qpqp" or "qqpp"
+    """
+
+    n = S.shape[0] // 2
+
+    if ordering == "qpqp":
+        Om = Omega_qpqp(n)
+
+    elif ordering == "qqpp":
+        Om = Omega_qqpp(n)
+
+    else:
+        raise ValueError("ordering must be 'qpqp' or 'qqpp'")
+
+    return np.allclose(S @ Om @ S.T, Om, atol=tol)
+
+
+
+
+def symplectic_error(S, ordering="qpqp"):
+    """
+    Return Frobenius norm of symplectic violation.
+    """
+
+    n = S.shape[0] // 2
+
+    if ordering == "qpqp":
+        Om = Omega_qpqp(n)
+    else:
+        Om = Omega_qqpp(n)
+
+    diff = S @ Om @ S.T - Om
+
+    return np.linalg.norm(diff)
+
