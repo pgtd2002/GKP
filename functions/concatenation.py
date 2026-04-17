@@ -152,7 +152,7 @@ def stabilizer_standard_form(G):
 # Concatenated GKP lattice construction
 # ============================================================
 
-def build_concatenated_gkp_generator_qqpp(G_binary):
+def build_concatenated_gkp_generator_qqpp(binary_stabilizer_matrix):
     """
     Construct M_conc^(sq) from stabilizer matrix G.
 
@@ -169,7 +169,7 @@ def build_concatenated_gkp_generator_qqpp(G_binary):
     info : dict
         Contains useful metadata
     """
-
+    G_binary= binary_stabilizer_matrix
     G_std, r, col_perm = stabilizer_standard_form(G_binary)
 
     m, total_cols = G_std.shape
