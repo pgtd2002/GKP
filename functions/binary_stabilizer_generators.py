@@ -27,7 +27,7 @@ def repetition_code_XXZZ(number_of_qubit,pauli: str):
 
         stabs.append(x + z)
 
-    return stabs
+    return np.array(stabs)
 
 
 

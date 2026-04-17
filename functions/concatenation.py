@@ -1,158 +1,69 @@
 import numpy as np
 
-"""
-Full construction of concatenated square GKP lattice generator matrix
-from a binary stabilizer matrix G.
-
-Implements Appendix A procedure:
-
-1) Take stabilizer matrix G (binary, size (N-k) x 2N)
-2) Bring G into standard form using Gaussian elimination over GF(2)
-3) Construct the concatenated lattice generator matrix
-   M_conc^(sq) in qqpp ordering
-
-Coordinates are assumed to be ordered as:
-
-    (q1, ..., qN, p1, ..., pN)
-
-Arithmetic for stabilizer manipulation is over GF(2).
-Lattice matrix is real-valued.
-"""
-
-
-# ============================================================
-# GF(2) utilities
-# ============================================================
-
 def gf2_swap_rows(M, i, j):
     M[[i, j]] = M[[j, i]]
-
 
 def gf2_swap_cols(M, i, j):
     M[:, [i, j]] = M[:, [j, i]]
 
-
 def gf2_row_add(M, src, dst):
     M[dst] = (M[dst] + M[src]) % 2
 
-
-# ============================================================
-# Standard form conversion
-# ============================================================
-
 def stabilizer_standard_form(G):
-    """
-    Convert stabilizer matrix G into standard form
-
-        [ I  A1  A2 | B  0  C ]
-        [ 0   0   0 | D  I  E ]
-
-    using Gaussian elimination over GF(2).
-
-    Parameters
-    ----------
-    G : ndarray (binary)
-        Shape (N-k, 2N)
-
-    Returns
-    -------
-    G_std : ndarray
-        Stabilizer matrix in standard form
-
-    r : int
-        Rank of X block
-
-    col_perm : list
-        Column permutation applied
-    """
-
     G = G.copy() % 2
-
     m, total_cols = G.shape
     N = total_cols // 2
-
     col_perm = list(range(total_cols))
 
-    # -----------------------------
-    # Step 1: eliminate X block
-    # -----------------------------
-
+    # Eliminate X block
     r = 0
-
     for col in range(N):
-        pivot_row = None
-
+        pivot = None
         for row in range(r, m):
             if G[row, col] == 1:
-                pivot_row = row
+                pivot = row
                 break
-
-        if pivot_row is None:
+        if pivot is None:
             continue
-
-        if pivot_row != r:
-            gf2_swap_rows(G, pivot_row, r)
-
+        if pivot != r:
+            gf2_swap_rows(G, pivot, r)
         for row in range(m):
             if row != r and G[row, col] == 1:
                 gf2_row_add(G, r, row)
-
         if col != r:
             gf2_swap_cols(G, col, r)
             col_perm[col], col_perm[r] = col_perm[r], col_perm[col]
-
         r += 1
-
         if r == m:
             break
 
-    # -----------------------------
-    # Step 2: eliminate Z block
-    # -----------------------------
-
-    z_start = N
+    # Eliminate Z block
     pivot_row = r
-
-    for col in range(z_start, 2 * N):
+    for col in range(N, 2 * N):
         if pivot_row >= m:
             break
-
-        row_found = None
-
+        found = None
         for row in range(pivot_row, m):
             if G[row, col] == 1:
-                row_found = row
+                found = row
                 break
-
-        if row_found is None:
+        if found is None:
             continue
-
-        if row_found != pivot_row:
-            gf2_swap_rows(G, row_found, pivot_row)
-
+        if found != pivot_row:
+            gf2_swap_rows(G, found, pivot_row)
         for row in range(m):
             if row != pivot_row and G[row, col] == 1:
                 gf2_row_add(G, pivot_row, row)
-
-        target_col = z_start + (pivot_row - r)
-
+        target_col = N + (pivot_row - r)
         if col != target_col:
             gf2_swap_cols(G, col, target_col)
-            col_perm[col], col_perm[target_col] = (
-                col_perm[target_col],
-                col_perm[col],
-            )
-
+            col_perm[col], col_perm[target_col] = col_perm[target_col], col_perm[col]
         pivot_row += 1
 
     return G, r, col_perm
 
 
-# ============================================================
-# Concatenated GKP lattice construction
-# ============================================================
-
-def build_concatenated_gkp_generator_qqpp(binary_stabilizer_matrix):
+def build_concatenated_gkp_generator_qqpp(G_binary):
     """
     Construct M_conc^(sq) from stabilizer matrix G.
 
@@ -169,7 +80,7 @@ def build_concatenated_gkp_generator_qqpp(binary_stabilizer_matrix):
     info : dict
         Contains useful metadata
     """
-    G_binary= binary_stabilizer_matrix
+
     G_std, r, col_perm = stabilizer_standard_form(G_binary)
 
     m, total_cols = G_std.shape
@@ -236,63 +147,11 @@ def build_concatenated_gkp_generator_qqpp(binary_stabilizer_matrix):
     M = M / np.sqrt(2)
 
     info = {
-        "no_of_oscillators": N,
-        "no_of_logical_qubit": k,
+        "N": N,
+        "k": k,
         "num_stabilizers": m,
-        "rank_of_X_block": r,
+        "r": r,
         "column_permutation": col_perm,
     }
 
     return M, info
-
-
-# ============================================================
-# Example usage
-# ============================================================
-
-# if __name__ == "__main__":
-#
-#     # Example: [[3,1]] repetition code
-#
-#     G = np.array(
-#         [
-#             [1, 1, 0, 0, 0, 0],
-#             [0, 1, 1, 0, 0, 0],
-#         ],
-#         dtype=int,
-#     )
-#
-#     M, info = build_concatenated_gkp_generator(G)
-#
-#     print("N =", info["N"])
-#     print("k =", info["k"])
-#     print("r =", info["r"])
-#
-#     print("\nConcatenated GKP generator matrix:")
-#     print(M)
-
-
-
-########################################
-########################################
-
-
-
-# G = np.array([
-#         # Phase-flip stabilizers (X-type)
-#         [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # X1 X2 X3 X4 X5 X6
-#         [0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # X4 X5 X6 X7 X8 X9
-#
-#         # Bit-flip stabilizers (Z-type)
-#         [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],  # Z1 Z2
-#         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],  # Z2 Z3
-#         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],  # Z4 Z5
-#         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],  # Z5 Z6
-#         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],  # Z7 Z8
-#         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]  # Z8 Z9
-#     ],
-#         dtype=int,
-#     )
-# m, info = build_concatenated_gkp_generator_qqpp(G)
-# print(info)
-# print(m)
