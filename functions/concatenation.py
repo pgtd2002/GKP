@@ -63,94 +63,76 @@ def stabilizer_standard_form(G):
     return G, r, col_perm
 
 
+
+
 def build_concatenated_gkp_generator_qqpp(G_binary):
-    """
-    Construct M_conc^(sq) from stabilizer matrix G.
-
-    Parameters
-    ----------
-    G_binary : ndarray
-        Binary stabilizer matrix (N-k x 2N)
-
-    Returns
-    -------
-    M : ndarray (float)
-        Lattice generator matrix
-
-    info : dict
-        Contains useful metadata
-    """
 
     G_std, r, col_perm = stabilizer_standard_form(G_binary)
 
     m, total_cols = G_std.shape
     N = total_cols // 2
 
-    k = N - m
-
-    remaining = m - r
-
-    # Column block sizes
+    k  = N - m
+    n2 = m - r   # = N - k - r
 
     n1 = r
-    n2 = remaining
     n3 = k
 
-    total_rows = 2 * N
+    # Column block offsets (in permuted basis)
+    b1 = 0          # q: I    width r
+    b2 = r          # q: A₁   width n2   ← Block 5 goes here
+    b3 = r + n2     # q: A₂   width k    ← Block 3 goes here
+    b4 = N          # p: B/D  width r    ← Block 4 goes here
+    b5 = N + r      # p: 0/I  width n2   (already in stab rows)
+    b6 = N + r + n2 # p: C/E  width k    ← Block 6 goes here
 
-    M = np.zeros((total_rows, 2 * N), dtype=float)
-
+    M = np.zeros((2 * N, 2 * N), dtype=float)
     row = 0
 
-    # ----------------------------------
-    # Stabilizer rows
-    # ----------------------------------
-
-    for i in range(m):
+    # Block 1: r rows — [I | A₁ | A₂ | B | 0 | C]
+    for i in range(r):
         M[row] = G_std[i]
         row += 1
 
-    # ----------------------------------
-    # Remaining square GKP generators
-    # ----------------------------------
-
-    # logical q block
-
-    for i in range(n3):
-        col = n1 + n2 + i
-        M[row, col] = 2
-        row += 1
-
-    # stabilizer p partners
-
-    for i in range(n1):
-        col = N + i
-        M[row, col] = 2
-        row += 1
-
-    # remaining p partners
-
+    # Block 2: n2 rows — [0 | 0 | 0 | D | I | E]
     for i in range(n2):
-        col = N + n1 + i
-        M[row, col] = 2
+        M[row] = G_std[r + i]
         row += 1
 
-    # logical p block
-
+    # Block 3: k rows — [0 | 0 | 2I | 0 | 0 | 0]  (q-side at b3)
     for i in range(n3):
-        col = N + n1 + n2 + i
-        M[row, col] = 2
+        M[row, b3 + i] = 2
         row += 1
 
-    # Global normalization
+    # Block 4: r rows — [0 | 0 | 0 | 2I | 0 | 0]  (p-side at b4)
+    for i in range(n1):
+        M[row, b4 + i] = 2
+        row += 1
+
+    # Block 5: n2 rows — [0 | 2I | 0 | 0 | 0 | 0]  (q-side at b2)  ← YOUR BUG WAS HERE
+    for i in range(n2):
+        M[row, b2 + i] = 2
+        row += 1
+
+    # Block 6: k rows — [0 | 0 | 0 | 0 | 0 | 2I]  (p-side at b6)
+    for i in range(n3):
+        M[row, b6 + i] = 2
+        row += 1
+
+    assert row == 2 * N, f"Row count mismatch: {row} != {2*N}"
 
     M = M / np.sqrt(2)
+
+    # Restore original qubit ordering
+    inverse_perm = np.argsort(col_perm)
+    M = M[:, inverse_perm]
 
     info = {
         "N": N,
         "k": k,
         "num_stabilizers": m,
         "r": r,
+        "n2": n2,
         "column_permutation": col_perm,
     }
 
