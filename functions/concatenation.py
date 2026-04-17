@@ -1,69 +1,158 @@
 import numpy as np
 
+"""
+Full construction of concatenated square GKP lattice generator matrix
+from a binary stabilizer matrix G.
+
+Implements Appendix A procedure:
+
+1) Take stabilizer matrix G (binary, size (N-k) x 2N)
+2) Bring G into standard form using Gaussian elimination over GF(2)
+3) Construct the concatenated lattice generator matrix
+   M_conc^(sq) in qqpp ordering
+
+Coordinates are assumed to be ordered as:
+
+    (q1, ..., qN, p1, ..., pN)
+
+Arithmetic for stabilizer manipulation is over GF(2).
+Lattice matrix is real-valued.
+"""
+
+
+# ============================================================
+# GF(2) utilities
+# ============================================================
+
 def gf2_swap_rows(M, i, j):
     M[[i, j]] = M[[j, i]]
+
 
 def gf2_swap_cols(M, i, j):
     M[:, [i, j]] = M[:, [j, i]]
 
+
 def gf2_row_add(M, src, dst):
     M[dst] = (M[dst] + M[src]) % 2
 
+
+# ============================================================
+# Standard form conversion
+# ============================================================
+
 def stabilizer_standard_form(G):
+    """
+    Convert stabilizer matrix G into standard form
+
+        [ I  A1  A2 | B  0  C ]
+        [ 0   0   0 | D  I  E ]
+
+    using Gaussian elimination over GF(2).
+
+    Parameters
+    ----------
+    G : ndarray (binary)
+        Shape (N-k, 2N)
+
+    Returns
+    -------
+    G_std : ndarray
+        Stabilizer matrix in standard form
+
+    r : int
+        Rank of X block
+
+    col_perm : list
+        Column permutation applied
+    """
+
     G = G.copy() % 2
+
     m, total_cols = G.shape
     N = total_cols // 2
+
     col_perm = list(range(total_cols))
 
-    # Eliminate X block
+    # -----------------------------
+    # Step 1: eliminate X block
+    # -----------------------------
+
     r = 0
+
     for col in range(N):
-        pivot = None
+        pivot_row = None
+
         for row in range(r, m):
             if G[row, col] == 1:
-                pivot = row
+                pivot_row = row
                 break
-        if pivot is None:
+
+        if pivot_row is None:
             continue
-        if pivot != r:
-            gf2_swap_rows(G, pivot, r)
+
+        if pivot_row != r:
+            gf2_swap_rows(G, pivot_row, r)
+
         for row in range(m):
             if row != r and G[row, col] == 1:
                 gf2_row_add(G, r, row)
+
         if col != r:
             gf2_swap_cols(G, col, r)
             col_perm[col], col_perm[r] = col_perm[r], col_perm[col]
+
         r += 1
+
         if r == m:
             break
 
-    # Eliminate Z block
+    # -----------------------------
+    # Step 2: eliminate Z block
+    # -----------------------------
+
+    z_start = N
     pivot_row = r
-    for col in range(N, 2 * N):
+
+    for col in range(z_start, 2 * N):
         if pivot_row >= m:
             break
-        found = None
+
+        row_found = None
+
         for row in range(pivot_row, m):
             if G[row, col] == 1:
-                found = row
+                row_found = row
                 break
-        if found is None:
+
+        if row_found is None:
             continue
-        if found != pivot_row:
-            gf2_swap_rows(G, found, pivot_row)
+
+        if row_found != pivot_row:
+            gf2_swap_rows(G, row_found, pivot_row)
+
         for row in range(m):
             if row != pivot_row and G[row, col] == 1:
                 gf2_row_add(G, pivot_row, row)
-        target_col = N + (pivot_row - r)
+
+        target_col = z_start + (pivot_row - r)
+
         if col != target_col:
             gf2_swap_cols(G, col, target_col)
-            col_perm[col], col_perm[target_col] = col_perm[target_col], col_perm[col]
+            col_perm[col], col_perm[target_col] = (
+                col_perm[target_col],
+                col_perm[col],
+            )
+
         pivot_row += 1
 
     return G, r, col_perm
 
 
-def build_concatenated_gkp_generator_qqpp(G_binary):
+# ============================================================
+# Concatenated GKP lattice construction
+# ============================================================
+
+def build_concatenated_gkp_generator(G_binary):
     """
     Construct M_conc^(sq) from stabilizer matrix G.
 
