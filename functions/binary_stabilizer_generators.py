@@ -1,7 +1,7 @@
 import numpy as np
 
 def repetition_code_XXZZ(number_of_qubit,pauli: str):
-    stabs = np.array([])
+    stabs = []
     n=number_of_qubit
     for i in range(n - 1):
 
