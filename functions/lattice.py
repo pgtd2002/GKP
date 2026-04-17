@@ -77,14 +77,15 @@ def qpqp_to_qqpp_permutation(n):
 
 
 
-def dual_lattice(M, ordering="qqpp"):
+def dual_lattice(M, ordering="qpqp"):
 
     n = M.shape[0] // 2
-
-    if ordering == "qqpp":
-        Om = Omega_qqpp(n)
-    else:
+    if ordering == "qpqp":
         Om = Omega_qpqp(n)
+
+    else:
+        Om = Omega_qqpp(n)
+
 
     A = M @ Om @ M.T
 
@@ -130,4 +131,8 @@ def symplectic_error(S, ordering="qpqp"):
     diff = S @ Om @ S.T - Om
 
     return np.linalg.norm(diff)
+
+
+
+
 
