@@ -1,67 +1,140 @@
 import numpy as np
 
+
+# =========================
+# GF(2) operations
+# =========================
+
 def gf2_swap_rows(M, i, j):
     M[[i, j]] = M[[j, i]]
+
 
 def gf2_swap_cols(M, i, j):
     M[:, [i, j]] = M[:, [j, i]]
 
+
 def gf2_row_add(M, src, dst):
     M[dst] = (M[dst] + M[src]) % 2
 
+
+# ==========================================================
+# Correct stabilizer standard form
+# ==========================================================
+
 def stabilizer_standard_form(G):
+
     G = G.copy() % 2
+
     m, total_cols = G.shape
     N = total_cols // 2
+
     col_perm = list(range(total_cols))
 
-    # Eliminate X block
+    # ======================================================
+    # STEP 1 — X elimination
+    # ======================================================
+
     r = 0
+
     for col in range(N):
+
         pivot = None
+
         for row in range(r, m):
             if G[row, col] == 1:
                 pivot = row
                 break
+
         if pivot is None:
             continue
+
         if pivot != r:
             gf2_swap_rows(G, pivot, r)
+
         for row in range(m):
             if row != r and G[row, col] == 1:
                 gf2_row_add(G, r, row)
+
         if col != r:
             gf2_swap_cols(G, col, r)
-            col_perm[col], col_perm[r] = col_perm[r], col_perm[col]
+            col_perm[col], col_perm[r] = (
+                col_perm[r],
+                col_perm[col],
+            )
+
         r += 1
+
         if r == m:
             break
 
-    # Eliminate Z block
+    # parameters
+
+    n2 = m - r
     pivot_row = r
-    for col in range(N, 2 * N):
-        if pivot_row >= m:
-            break
-        found = None
-        for row in range(pivot_row, m):
-            if G[row, col] == 1:
-                found = row
+
+    # ======================================================
+    # STEP 2 — Z elimination with column placement
+    # ======================================================
+
+    for i in range(n2):
+
+        target_col = N + r + i
+
+        pivot_col = None
+        pivot_row_found = None
+
+        # search pivot anywhere in Z
+
+        for col in range(N, 2 * N):
+
+            for row in range(pivot_row, m):
+
+                if G[row, col] == 1:
+
+                    pivot_col = col
+                    pivot_row_found = row
+                    break
+
+            if pivot_col is not None:
                 break
-        if found is None:
-            continue
-        if found != pivot_row:
-            gf2_swap_rows(G, found, pivot_row)
+
+        if pivot_col is None:
+            raise ValueError("Z block rank deficiency")
+
+        # move pivot row
+
+        if pivot_row_found != pivot_row:
+            gf2_swap_rows(G, pivot_row_found, pivot_row)
+
+        # clear column
+
         for row in range(m):
-            if row != pivot_row and G[row, col] == 1:
+            if row != pivot_row and G[row, pivot_col] == 1:
                 gf2_row_add(G, pivot_row, row)
-        target_col = N + (pivot_row - r)
-        if col != target_col:
-            gf2_swap_cols(G, col, target_col)
-            col_perm[col], col_perm[target_col] = col_perm[target_col], col_perm[col]
+
+        # move pivot column into canonical position
+
+        if pivot_col != target_col:
+
+            gf2_swap_cols(G, pivot_col, target_col)
+
+            col_perm[pivot_col], col_perm[target_col] = (
+                col_perm[target_col],
+                col_perm[pivot_col],
+            )
+
         pivot_row += 1
 
-    return G, r, col_perm
+    info = dict(
+        N=N,
+        m=m,
+        r=r,
+        n2=n2,
+        k=N - m,
+        column_permutation=col_perm,
+    )
 
+    return G, r, col_perm
 
 
 
@@ -123,9 +196,7 @@ def build_concatenated_gkp_generator_qqpp(G_binary):
 
     M = M / np.sqrt(2)
 
-    # Restore original qubit ordering
-    inverse_perm = np.argsort(col_perm)
-    M = M[:, inverse_perm]
+
 
     info = {
         "N": N,

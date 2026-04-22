@@ -47,3 +47,24 @@ shor_code_913=np.array([
         dtype=int,
     )
 
+import numpy as np
+
+import numpy as np
+
+def steane_code_713():
+
+    G = np.array([
+
+        # X-type stabilizers
+        [0,0,0,1,0,1,1,  0,0,0,0,0,0,0],
+        [0,0,0,0,1,1,1,  0,0,0,0,0,0,0],
+        [0,0,0,1,1,0,1,  0,0,0,0,0,0,0],
+
+        # Z-type stabilizers
+        [0,0,0,0,0,0,0,  1,0,0,1,0,1,1],
+        [0,0,0,0,0,0,0,  0,1,0,1,1,0,1],
+        [0,0,0,0,0,0,0,  0,0,1,0,1,1,1],
+
+    ], dtype=int)
+
+    return G
