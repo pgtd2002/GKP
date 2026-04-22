@@ -17,6 +17,31 @@ def square_lattice_qpqp(n):
 
     return M
 
+
+import numpy as np
+
+def hex_lattice_generator_n_modes(n, scale=1.0):
+    """
+    Block-diagonal hex lattice generator for n modes.
+    """
+
+    prefactor = 3 ** (-0.25)
+
+    M_hex = prefactor * np.array([
+        [2.0, 0.0],
+        [1.0, np.sqrt(3.0)]
+    ])
+
+    single = scale * M_hex
+
+    M = np.zeros((2*n, 2*n))
+
+    for i in range(n):
+        M[2*i:2*i+2, 2*i:2*i+2] = single
+
+    return M
+
+
 def Omega_qpqp(n):
     """
     Omega = I_N ⊗ [[0,1],[-1,0]]
