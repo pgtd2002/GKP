@@ -17,6 +17,40 @@ def gf2_row_add(M, src, dst):
     M[dst] = (M[dst] + M[src]) % 2
 
 
+def gf2_independent_row_basis(M):
+    """
+    Return an independent row basis of M over GF(2).
+    Redundant rows are removed so downstream rank assumptions hold.
+    """
+    A = M.copy() % 2
+    m, n = A.shape
+    r = 0
+
+    for col in range(n):
+        pivot = None
+        for row in range(r, m):
+            if A[row, col] == 1:
+                pivot = row
+                break
+
+        if pivot is None:
+            continue
+
+        if pivot != r:
+            gf2_swap_rows(A, pivot, r)
+
+        for row in range(m):
+            if row != r and A[row, col] == 1:
+                gf2_row_add(A, r, row)
+
+        r += 1
+        if r == m:
+            break
+
+    return A[:r].copy(), r
+
+
+
 # ==========================================================
 # Correct stabilizer standard form
 # ==========================================================
@@ -24,6 +58,7 @@ def gf2_row_add(M, src, dst):
 def stabilizer_standard_form(G):
 
     G = G.copy() % 2
+    G, _ = gf2_independent_row_basis(G)
 
     m, total_cols = G.shape
     N = total_cols // 2
