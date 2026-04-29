@@ -41,3 +41,6 @@ S = np.block([
 #this part rearranges the stab matrix in X and Z block (Stabilizer Standard Form)
 #------------------------------
 G,r,info=stabilizer_standard_form(S)
+
+
+

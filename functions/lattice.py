@@ -198,3 +198,59 @@ def is_in_stabilizer_lattice(correction, M, tol=1e-6):
 
 
 
+
+def is_in_stabilizer_lattice_square_fast(correction, M, tol=1e-6):
+
+    z = np.linalg.solve(M, correction)
+
+    z_round = np.round(z)
+
+    is_integer = np.all(np.abs(z - z_round) < tol)
+
+    return is_integer
+
+
+
+
+
+
+
+
+import numpy as np
+
+
+def direct_sum(A, B, dtype=int):
+    """
+    Compute the direct sum of two matrices.
+
+    Parameters
+    ----------
+    A : ndarray (m1, n1)
+    B : ndarray (m2, n2)
+    dtype : data type (default int)
+
+    Returns
+    -------
+    ndarray (m1+m2, n1+n2)
+
+    [ A  0 ]
+    [ 0  B ]
+    """
+
+    m1, n1 = A.shape
+    m2, n2 = B.shape
+
+    top = np.hstack([
+        A,
+        np.zeros((m1, n2), dtype=dtype)
+    ])
+
+    bottom = np.hstack([
+        np.zeros((m2, n1), dtype=dtype),
+        B
+    ])
+
+    return np.vstack([
+        top,
+        bottom
+    ])

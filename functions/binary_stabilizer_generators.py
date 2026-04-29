@@ -68,3 +68,92 @@ def steane_code_713():
     ], dtype=int)
 
     return G
+
+
+import numpy as np
+
+
+def rotated_surface_code_stabilizers(d):
+    """
+    Generate rotated surface code stabilizers for distance d.
+
+    Returns
+    -------
+    Hx : ndarray
+        X stabilizer matrix (binary)
+    Hz : ndarray
+        Z stabilizer matrix (binary)
+    """
+
+    if d % 2 == 0:
+        raise ValueError("Distance d must be odd for rotated surface code")
+
+    n = d * d
+
+    Hx_rows = []
+    Hz_rows = []
+
+    # map (i,j) -> qubit index
+    def q(i, j):
+        return i * d + j
+
+    for i in range(d):
+        for j in range(d):
+
+            # checkerboard pattern
+            if (i + j) % 2 == 0:
+
+                qubits = []
+
+                # neighbors (up/down/left/right)
+                if i > 0:
+                    qubits.append(q(i - 1, j))
+                if i < d - 1:
+                    qubits.append(q(i + 1, j))
+                if j > 0:
+                    qubits.append(q(i, j - 1))
+                if j < d - 1:
+                    qubits.append(q(i, j + 1))
+
+                if len(qubits) >= 2:
+
+                    row = np.zeros(n, dtype=int)
+
+                    for qubit in qubits:
+                        row[qubit] = 1
+
+                    Hx_rows.append(row)
+
+            else:
+
+                qubits = []
+
+                if i > 0:
+                    qubits.append(q(i - 1, j))
+                if i < d - 1:
+                    qubits.append(q(i + 1, j))
+                if j > 0:
+                    qubits.append(q(i, j - 1))
+                if j < d - 1:
+                    qubits.append(q(i, j + 1))
+
+                if len(qubits) >= 2:
+
+                    row = np.zeros(n, dtype=int)
+
+                    for qubit in qubits:
+                        row[qubit] = 1
+
+                    Hz_rows.append(row)
+
+    Hx = np.array(Hx_rows, dtype=int)
+    Hz = np.array(Hz_rows, dtype=int)
+
+    ###Stacking
+    mx, n = Hx.shape
+    mz, _ = Hz.shape
+
+    top = np.hstack([Hx, np.zeros((mx, n), dtype=int)])
+    bottom = np.hstack([np.zeros((mz, n), dtype=int), Hz])
+
+    return np.vstack([top, bottom])
