@@ -158,6 +158,43 @@ def symplectic_error(S, ordering="qpqp"):
     return np.linalg.norm(diff)
 
 
+import numpy as np
+
+def is_in_stabilizer_lattice(correction, M, tol=1e-6):
+    """
+    Check whether a correction vector lies in the stabilizer lattice Λ(M).
+
+    Parameters
+    ----------
+    correction : ndarray, shape (n,)
+        Correction vector c.
+    M : ndarray, shape (n, k)
+        Stabilizer lattice generator matrix.
+    tol : float
+        Numerical tolerance for integer check.
+
+    Returns
+    -------
+    bool
+        True if correction ∈ Λ(M), else False.
+    z : ndarray
+        Integer lattice coordinates (rounded).
+    """
+
+    # Compute pseudoinverse
+    M_pinv = np.linalg.pinv(M)
+
+    # Solve for lattice coordinates
+    z = M_pinv @ correction
+
+    # Check if coordinates are integers
+    z_round = np.round(z)
+
+    is_integer = np.all(np.abs(z - z_round) < tol)
+
+    return is_integer
+
+
 
 
 

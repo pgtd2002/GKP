@@ -3,9 +3,10 @@ from sympy import Matrix
 from scipy.io import loadmat
 from functions.concatenation import *
 from functions.binary_stabilizer_generators import *
+import pandas as pd
 
 # Load the .mat file
-data = loadmat("g3_d3.mat")
+data = loadmat("g4_d7.mat")
 
 # Extract parity-check matrices
 Hx = data["Hx"] % 2
@@ -26,44 +27,43 @@ S = np.block([
 
 
 
-S=steane_code_713()
+#S=steane_code_713()
 # S=shor_code_913
 M,info=build_concatenated_gkp_generator_qqpp(S)
 det=np.linalg.det(M)
 enc_dim=np.log2(det)
 
-print(info)
-print(np.sqrt(2)*M)
-
-
+from openpyxl import Workbook
 import numpy as np
-import matplotlib.pyplot as plt
 
-def show_binary_matrix(M, title="Binary Matrix"):
+def export_matrix_to_excel(M, filename="matrix.xlsx", sheet_name="Matrix"):
     """
-    Visualize a binary matrix using black/white colors.
+    Export a matrix to an Excel (.xlsx) file.
 
     Parameters
     ----------
-    M : ndarray
-        Binary matrix (0/1)
-    title : str
-        Plot title
+    M : ndarray or list
+        Matrix to export
+    filename : str
+        Output file name
+    sheet_name : str
+        Excel sheet name
     """
 
-    M = np.array(M) % 2  # ensure binary
+    wb = Workbook()
+    ws = wb.active
+    ws.title = sheet_name
 
-    plt.figure(figsize=(8, 6))
-    plt.imshow(M, cmap="gray_r", aspect="auto")
+    M = np.array(M)
 
-    plt.title(title)
-    plt.xlabel("Columns")
-    plt.ylabel("Rows")
+    for row in M:
+        ws.append(row.tolist())
 
-    plt.colorbar(label="Value")
-    plt.tight_layout()
-    plt.show()
+    wb.save(filename)
+
+    print(f"Matrix exported to {filename}")
+
+print(info)
 
 
-show_binary_matrix(np.sqrt(2)*M)
 
