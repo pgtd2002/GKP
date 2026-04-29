@@ -70,90 +70,88 @@ def steane_code_713():
     return G
 
 
-import numpy as np
 
 
-def rotated_surface_code_stabilizers(d):
+
+def get_rotated_surface_code_matrix(distance: int) -> np.ndarray:
     """
-    Generate rotated surface code stabilizers for distance d.
+    Generates the binary parity-check matrix for a rotated surface code
+    as the direct sum of the X-stabilizer and Z-stabilizer matrices.
 
-    Returns
-    -------
-    Hx : ndarray
-        X stabilizer matrix (binary)
-    Hz : ndarray
-        Z stabilizer matrix (binary)
+    Args:
+        distance (int): The distance of the surface code (must be an odd integer).
+
+    Returns:
+        np.ndarray: A binary matrix of shape ((d^2 - 1), 2 * d^2) representing
+                    the direct sum [ [H_X, 0], [0, H_Z] ].
     """
+    if distance % 2 == 0 or distance < 3:
+        raise ValueError("Rotated surface codes typically require an odd distance >= 3.")
 
-    if d % 2 == 0:
-        raise ValueError("Distance d must be odd for rotated surface code")
+    d = distance
+    n = d * d  # Total number of data qubits
 
-    n = d * d
+    # Map (row, col) coordinates to an integer qubit ID (0 to d^2 - 1)
+    def get_id(r, c):
+        return r * d + c
 
-    Hx_rows = []
-    Hz_rows = []
+    x_stabilizers = []
+    z_stabilizers = []
 
-    # map (i,j) -> qubit index
-    def q(i, j):
-        return i * d + j
-
-    for i in range(d):
-        for j in range(d):
-
-            # checkerboard pattern
-            if (i + j) % 2 == 0:
-
-                qubits = []
-
-                # neighbors (up/down/left/right)
-                if i > 0:
-                    qubits.append(q(i - 1, j))
-                if i < d - 1:
-                    qubits.append(q(i + 1, j))
-                if j > 0:
-                    qubits.append(q(i, j - 1))
-                if j < d - 1:
-                    qubits.append(q(i, j + 1))
-
-                if len(qubits) >= 2:
-
-                    row = np.zeros(n, dtype=int)
-
-                    for qubit in qubits:
-                        row[qubit] = 1
-
-                    Hx_rows.append(row)
-
+    # 1. Bulk Stabilizers (Weight-4)
+    for r in range(d - 1):
+        for c in range(d - 1):
+            qubits = [get_id(r, c), get_id(r, c + 1), get_id(r + 1, c), get_id(r + 1, c + 1)]
+            if (r + c) % 2 == 0:
+                x_stabilizers.append(qubits)
             else:
+                z_stabilizers.append(qubits)
 
-                qubits = []
+    # 2. Boundary Stabilizers (Weight-2)
+    for i in range(d - 1):
+        # Left boundary X (column 0)
+        if i % 2 != 0:
+            x_stabilizers.append([get_id(i, 0), get_id(i + 1, 0)])
 
-                if i > 0:
-                    qubits.append(q(i - 1, j))
-                if i < d - 1:
-                    qubits.append(q(i + 1, j))
-                if j > 0:
-                    qubits.append(q(i, j - 1))
-                if j < d - 1:
-                    qubits.append(q(i, j + 1))
+        # Right boundary X (column d-1)
+        if i % 2 == 0:
+            x_stabilizers.append([get_id(i, d - 1), get_id(i + 1, d - 1)])
 
-                if len(qubits) >= 2:
+        # Top boundary Z (row 0)
+        if i % 2 == 0:
+            z_stabilizers.append([get_id(0, i), get_id(0, i + 1)])
 
-                    row = np.zeros(n, dtype=int)
+        # Bottom boundary Z (row d-1)
+        if i % 2 != 0:
+            z_stabilizers.append([get_id(d - 1, i), get_id(d - 1, i + 1)])
 
-                    for qubit in qubits:
-                        row[qubit] = 1
+    # 3. Construct Binary Sub-Matrices (H_X and H_Z)
+    num_x = len(x_stabilizers)
+    num_z = len(z_stabilizers)
 
-                    Hz_rows.append(row)
+    H_X = np.zeros((num_x, n), dtype=int)
+    H_Z = np.zeros((num_z, n), dtype=int)
 
-    Hx = np.array(Hx_rows, dtype=int)
-    Hz = np.array(Hz_rows, dtype=int)
+    for i, stab in enumerate(x_stabilizers):
+        for q in stab:
+            H_X[i, q] = 1
 
-    ###Stacking
-    mx, n = Hx.shape
-    mz, _ = Hz.shape
+    for i, stab in enumerate(z_stabilizers):
+        for q in stab:
+            H_Z[i, q] = 1
 
-    top = np.hstack([Hx, np.zeros((mx, n), dtype=int)])
-    bottom = np.hstack([np.zeros((mz, n), dtype=int), Hz])
+    # 4. Construct the Direct Sum: H = H_X ⊕ H_Z
+    # Structure: [ H_X   0  ]
+    #            [  0   H_Z ]
+    top_block = np.hstack((H_X, np.zeros((num_x, n), dtype=int)))
+    bottom_block = np.hstack((np.zeros((num_z, n), dtype=int), H_Z))
 
-    return np.vstack([top, bottom])
+    H = np.vstack((top_block, bottom_block))
+
+    return H
+
+
+
+
+
+

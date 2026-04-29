@@ -5,7 +5,7 @@ from functions.concatenation import *
 from functions.binary_stabilizer_generators import *
 from decoders.surface_decoder import *
 import pandas as pd
-
+import plotly.express as px
 #------------------------------
 #this part imports the Stabilizer matrix
 #------------------------------
@@ -40,7 +40,12 @@ S = np.block([
 #------------------------------
 #this part rearranges the stab matrix in X and Z block (Stabilizer Standard Form)
 #------------------------------
-G,r,info=stabilizer_standard_form(S)
+A= get_rotated_surface_code_matrix()
+G,info=build_concatenated_gkp_generator_qqpp(A)
+
+print(A)
+
+print(np.linalg.det(G))
 
 
 

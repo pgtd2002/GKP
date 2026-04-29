@@ -141,8 +141,7 @@ def decode_surface_gkp(
     chi : ndarray
         Closest lattice vector
     """
-    t=pow(np.pi,-0.5) * t
-    t = np.asarray(t)
+    t = np.asarray(t)/np.sqrt(np.pi)
 
     N2 = len(t)
     assert N2 % 2 == 0
